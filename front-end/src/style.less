@@ -1,0 +1,25 @@
+// element plus 的全局主题色覆盖处理
+:root {
+  --el-color-primary: rgba(80, 180, 80, 1) !important;
+  --el-color-primary-dark-2: rgba(80, 180, 80, 0.9) !important;
+  .loop(9);
+}
+
+.loop(@count) when (@count > 0) {
+  .loop(@count - 1);
+
+  --el-color-primary-light-@{count}: rgba(80, 180, 80, (10 - @count) / 10) !important;
+}
+
+body {
+  display: flex;
+  box-sizing: border-box;
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  width: 100vw;
+}
