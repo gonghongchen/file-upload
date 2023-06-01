@@ -1,16 +1,18 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "file-upload server",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "cross-env NODE_ENV=development npx nodemon index.js",
+    "prod": "cross-env NODE_ENV=production node index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "busboy": "^1.6.0",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "express": "^4.18.2",
     "fs-extra": "^11.1.1",
     "moment": "^2.29.4",

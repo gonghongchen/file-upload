@@ -5,8 +5,8 @@ const moment = require('moment')
 const path = require('path')
 const fs = require('fs-extra')
 const app = express()
-const http = require('http')
-const server = http.createServer(app)
+// const http = require('http')
+// const server = http.createServer(app)
 // const io = require('socket.io')(server, {
 //   cors: {
 //     origin: "http://127.0.0.1:6661",
@@ -15,7 +15,18 @@ const server = http.createServer(app)
 // })
 
 app.use(express.json()) // 解析请求体中的 JSON 数据
-app.use(cors()) // 接口请求跨域处理
+
+const whitelist = ['http://file.gonghongchen.com/']
+const corsOptions = {
+  origin(origin, callback) {
+    if (process.env.NODE_ENV === 'development' || whitelist.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
+}
+app.use(cors(corsOptions)) // 接口请求跨域处理
 
 // 设置上传的目录和文件名
 const storage = multer.diskStorage({
@@ -151,6 +162,6 @@ app.delete('/deleteFile', async (req, res) => {
 // })
 
 // 启动服务器
-server.listen(6660, () => {
+app.listen(6660, () => {
   console.log('Server started on port 6660')
 })
