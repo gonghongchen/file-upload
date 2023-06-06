@@ -1,6 +1,9 @@
 <template>
   <div class="container">
-    <el-page-header class="header">
+    <el-page-header class="header" :icon="ArrowLeft" @back="handleBack" :disabled="isRoot">
+      <template #title>
+        返回上一级
+      </template>
       <template #breadcrumb>
         <el-breadcrumb separator="/">
           <el-breadcrumb-item v-for="(item, index) in pathShowList" :key="index">{{ item }}</el-breadcrumb-item>
@@ -25,8 +28,8 @@
     </el-table>
 
     <form :action="`${serverOrigin}/upload?path=${path}`" method="post" enctype="multipart/form-data">
-      <!-- <input type="file" name="files" multiple> -->
-      <input type="file" name="file">
+      <input type="file" name="files" multiple>
+      <!-- <input type="file" name="file"> -->
       <button type="submit">Upload</button>
     </form>
 
@@ -44,7 +47,8 @@
 // import { io } from "socket.io-client"
 import axios from 'axios'
 import { onBeforeMount, ref, computed } from "vue"
-import { ArrowRight } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN
 
@@ -111,6 +115,11 @@ const handleDownloadFile = (file) => {
 
 // 返回上一级目录
 const handleBack = () => {
+  if (isRoot.value) {
+    ElMessage('已经是第一级目录啦')
+    return
+  }
+
   const pathList = path.value.split('/')
   path.value = pathList.slice(0, pathList.length - 1).join('/')
 

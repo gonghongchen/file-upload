@@ -19,11 +19,11 @@ app.use(express.json()) // 解析请求体中的 JSON 数据
 const whitelist = ['http://file.gonghongchen.com/']
 const corsOptions = {
   origin(origin, callback) {
-    if (process.env.NODE_ENV === 'development' || whitelist.includes(origin)) {
+    // if (process.env.NODE_ENV === 'development' || whitelist.includes(origin)) {
       callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
+    // } else {
+    //   callback(new Error('Not allowed by CORS'))
+    // }
   }
 }
 app.use(cors(corsOptions)) // 接口请求跨域处理
@@ -46,9 +46,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 // 文件上传
-// app.post('/upload', upload.array('files', 10), (req, res, next) => {
-app.post('/upload', upload.single('file'), (req, res, next) => {
-  const file = req.file
+app.post('/upload', upload.array('files', 10), (req, res, next) => {
+// app.post('/upload', upload.single('file'), (req, res, next) => {
+  const file = req.files
   
   if (!file) {
     const error = new Error('Please upload a file')
