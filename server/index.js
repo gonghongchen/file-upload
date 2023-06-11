@@ -80,7 +80,7 @@ app.get('/getFilesList', async (req, res) => {
 
       Object.assign(data, {
         time: moment(ctime).format('yyyy-MM-DD'),
-        size: MB < 1 ? KB.toFixed() + 'K' : MB.toFixed() + 'M' // 大小的单位为 KB 或者 MB
+        size: MB < 1 ? KB.toFixed(2) + 'K' : MB.toFixed(2) + 'M' // 大小的单位为 KB 或者 MB
       })
     }
 

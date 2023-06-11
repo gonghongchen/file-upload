@@ -2,7 +2,7 @@
   <div class="container">
     <el-page-header class="header" :icon="ArrowLeft" @back="handleBack" :disabled="isRoot">
       <template #title>
-        返回上一级
+        Back
       </template>
       <template #breadcrumb>
         <el-breadcrumb separator="/">
@@ -10,36 +10,65 @@
         </el-breadcrumb>
       </template>
       <template #content>
-        <span class="text-large font-600 mr-3"> Title </span>
+        <div class="action-bar">
+          <el-button type="primary" @click="drawerVisible = true" :icon="Upload">Upload files</el-button>
+          <el-input
+            v-model.trim="newDirName"
+            placeholder="Please input folder name"
+            style="margin-left: 20px; margin-right: 5px;"
+          />
+          
+          <el-button type="primary" @click="handlCreateDir" :icon="FolderAdd">New folder</el-button>
+        </div>
       </template>
     </el-page-header>
     
-    <el-table :data="files" class="table">
-      <el-table-column prop="name" label="文件名" />
-      <el-table-column prop="time" label="创建时间" />
-      <el-table-column prop="size" label="文件大小" />
-      <el-table-column label="操作">
-        <template #default="{ row }">
-          <el-button v-if="row.isFile" @click="handleDownloadFile(row)" type="primary" plain>下载</el-button>
-          <el-button v-else @click="handleFetchFiles(row)" type="primary" plain>打开</el-button>
-          <el-button @click="handleDelete(row)" type="danger" plain>删除</el-button>
-        </template>
-      </el-table-column>
+    <div class="table-box">
+      <el-table :data="files">
+        <el-table-column prop="name" label="File/Folder name" />
+        <el-table-column prop="time" label="Created time" />
+        <el-table-column prop="size" label="File size" />
+        <el-table-column label="Operations">
+          <template #default="{ row }">
+            <el-button v-if="row.isFile" @click="handleDownloadFile(row)" type="primary" link :icon="Download" >Download</el-button>
+            <el-button v-else @click="handleFetchFiles(row)" type="primary" link :icon="FolderOpened">Open</el-button>
+            <el-button @click="handleDelete(row)" type="danger" link :icon="Delete">Delete</el-button>
+          </template>
+        </el-table-column>
     </el-table>
-
-    <form :action="`${serverOrigin}/upload?path=${path}`" method="post" enctype="multipart/form-data">
-      <input type="file" name="files" multiple>
-      <!-- <input type="file" name="file"> -->
-      <button type="submit">Upload</button>
-    </form>
-
-    <div>
-      <input type="text" v-model="newDirName">
-      <el-button @click="handlCreateDir">新建文件夹</el-button>
     </div>
 
-    <button @click="handleBack" :disabled="isRoot">返回上一级</button>
-    <p>当前路径：{{ pathShowList.join('/') }}</p>
+    <el-drawer
+      v-model="drawerVisible"
+      title="Upload files"
+      direction="rtl"
+    >
+      <el-upload
+        drag
+        multiple
+        name="files"
+        :on-success="handleSuccess"
+        :action="`${serverOrigin}/upload?path=${path}`"
+        :headers="{
+          enctype: 'multipart/form-data'
+        }"
+      >
+        <el-icon class="el-icon--upload">
+          <UploadFilled />
+        </el-icon>
+        <div class="el-upload__text">
+          Drop file here or <em>click to upload</em>
+        </div>
+        <template #tip>
+          <div class="el-upload__tip">
+            <el-alert title="A single file size should not more than 20M." type="warning" show-icon />
+          </div>
+          <div class="el-upload__tip">
+            <el-alert title="When file is uploading, and then close current drawer, the file will uploading continue." type="warning" show-icon />
+          </div>
+        </template>
+      </el-upload>
+    </el-drawer>
   </div>
 </template>
 
@@ -47,8 +76,8 @@
 // import { io } from "socket.io-client"
 import axios from 'axios'
 import { onBeforeMount, ref, computed } from "vue"
-import { ArrowLeft } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ArrowLeft, UploadFilled, Upload, Download, Delete, FolderOpened, FolderAdd } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN
 
@@ -92,6 +121,7 @@ const handleFetchFiles = (file = {}) => {
 
 // 下载文件
 const handleDownloadFile = (file) => {
+  ElMessage('The file is downloading, please be patient and wait')
   axios.get('/downloadFile', {
     params: {
       path: encodeURIComponent(path.value),
@@ -116,7 +146,7 @@ const handleDownloadFile = (file) => {
 // 返回上一级目录
 const handleBack = () => {
   if (isRoot.value) {
-    ElMessage('已经是第一级目录啦')
+    ElMessage("It's already a top-level directory")
     return
   }
 
@@ -129,6 +159,17 @@ const handleBack = () => {
 // 新建文件夹
 const newDirName = ref('')
 const handlCreateDir = () => {
+  if (!newDirName.value) {
+    ElMessage("Please input a new folder name")
+    return
+  }
+
+  const isExist = files.value.filter(item => !item.isFile)?.find(item => item.name === newDirName.value)
+  if (isExist) {
+    ElMessage(`The folder [${newDirName.value}] already exists`)
+    return
+  }
+
   axios.post('/createNewDir', {
     path: encodeURIComponent(path.value + `/${newDirName.value}`)
   }).then(res => {
@@ -139,14 +180,37 @@ const handlCreateDir = () => {
 
 // 删除目录/文件
 const handleDelete = (file) => {
-  axios.delete('/deleteFile', {
-    params: {
-      path: encodeURIComponent(path.value),
-      fileName: file.name
+  const { isFile, name } = file
+  ElMessageBox.confirm(
+    `Are you sure to delete the ${isFile ? 'file' : 'folder'} [${name}] ?`,
+    'Tips',
+    {
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+      type: 'warning',
     }
-  }).then(res => {
-    handleFetchFiles()
-  })
+  )
+    .then(() => {
+      axios.delete('/deleteFile', {
+        params: {
+          path: encodeURIComponent(path.value),
+          fileName: file.name
+        }
+      }).then(res => {
+        ElMessage({
+            type: 'success',
+            message: 'Delete completed',
+          })
+        handleFetchFiles()
+      })
+    })
+    .catch(() => {})
+}
+
+const drawerVisible = ref(false)
+
+const handleSuccess = () => {
+  handleFetchFiles()
 }
 
 onBeforeMount(() => {
@@ -156,6 +220,8 @@ onBeforeMount(() => {
 
 <style scoped lang="less">
 .container {
+  box-sizing: border-box;
+  height: 100vh;
   padding: 20px;
   background-color: #f2f2f2;
 
@@ -164,22 +230,16 @@ onBeforeMount(() => {
     margin-bottom: 20px;
     background-color: #fff;
     border-radius: 10px;
+
+    .action-bar {
+      display: flex;
+    }
   }
 
-  .table {
-    box-sizing: border-box;
+  .table-box {
     padding: 20px;
     border-radius: 10px;
+    background-color: #fff;
   }
-}
-.item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 700px;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-  text-align: left;
 }
 </style>
