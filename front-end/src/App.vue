@@ -30,8 +30,9 @@
         <el-table-column prop="size" label="File size" />
         <el-table-column label="Operations">
           <template #default="{ row }">
-            <el-button v-if="row.isFile" @click="handleDownloadFile(row)" type="primary" link :icon="Download" >Download</el-button>
+            <el-button v-if="row.isFile" @click="handleDownloadFile(row)" type="primary" link :icon="Download">Download</el-button>
             <el-button v-else @click="handleFetchFiles(row)" type="primary" link :icon="FolderOpened">Open</el-button>
+            <el-button v-if="getIsImg(row.name)" @click="previewImg(row)" type="primary" link :icon="Picture">Preview</el-button>
             <el-button @click="handleDelete(row)" type="danger" link :icon="Delete">Delete</el-button>
           </template>
         </el-table-column>
@@ -76,7 +77,7 @@
 // import { io } from "socket.io-client"
 import axios from 'axios'
 import { onBeforeMount, ref, computed } from "vue"
-import { ArrowLeft, UploadFilled, Upload, Download, Delete, FolderOpened, FolderAdd } from '@element-plus/icons-vue'
+import { ArrowLeft, UploadFilled, Upload, Download, Delete, FolderOpened, FolderAdd, Picture } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN
@@ -211,6 +212,12 @@ const drawerVisible = ref(false)
 
 const handleSuccess = () => {
   handleFetchFiles()
+}
+
+const getIsImg = name => (/\.(jpg|png|gif|jpeg|svg)$/i).test(name)
+const previewImg = (file) => {
+  const url = `${serverOrigin}/downloadFile?path=${encodeURIComponent(path.value)}&fileName=${file.name}`
+  window.open(url, '_blank')
 }
 
 onBeforeMount(() => {
