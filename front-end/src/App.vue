@@ -25,7 +25,14 @@
     
     <div class="table-box">
       <el-table :data="files">
-        <el-table-column prop="name" label="File/Folder name" />
+        <el-table-column prop="name" label="File/Folder name">
+          <template #default="{ row }">
+            <div class="file">
+              <img :src="getAssets(`svg/${row.icon}`)" class="icon" />
+              <span>{{ row.name }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="time" label="Created time" />
         <el-table-column prop="size" label="File size" />
         <el-table-column label="Operations">
@@ -79,6 +86,7 @@ import axios from 'axios'
 import { onBeforeMount, ref, computed } from "vue"
 import { ArrowLeft, UploadFilled, Upload, Download, Delete, FolderOpened, FolderAdd, Picture } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getAssets } from '@/utils'
 
 const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN
 
@@ -116,7 +124,14 @@ const handleFetchFiles = (file = {}) => {
 
     isRoot.value = isRootPath
     path.value = curPath
-    files.value = fileList
+    files.value = (fileList || []).map(item => {
+      const { name } = item
+      const icon = getIcon(name)
+      return {
+        ...item,
+        icon
+      }
+    })
   })
 }
 
@@ -220,6 +235,48 @@ const previewImg = (file) => {
   window.open(url, '_blank')
 }
 
+const getIcon = name => {
+  const file = name.split('.')[1]?.toLowerCase()
+  switch (file) {
+    case undefined:
+      return 'folder.svg'
+    case 'png':
+    case 'svg':
+    case 'gif':
+    case 'jpg':
+    case 'jpeg':
+      return 'pic.svg'
+    case 'pdf':
+      return 'pdf.svg'
+    case 'mp3':
+    case 'ogg':
+      return 'music.svg'
+    case 'ppt':
+    case 'pptx':
+      return 'ppt.svg'
+    case 'xls':
+    case 'xlsx':
+      return 'excel.svg'
+    case 'doc':
+    case 'docx':
+      return 'doc.svg'
+    case 'zip':
+    case 'rar':
+    case 'tar':
+    case '7z':
+      return 'zip.svg'
+    case 'mp4':
+    case 'flv':
+    case 'mov':
+    case 'rmvb':
+    case 'wmv':
+    case 'avi':
+      return 'video.svg'
+    default:
+      return 'unknow.svg'
+  }
+}
+
 onBeforeMount(() => {
   handleFetchFiles()
 })
@@ -247,6 +304,17 @@ onBeforeMount(() => {
     padding: 20px;
     border-radius: 10px;
     background-color: #fff;
+
+    .file {
+      display: flex;
+      align-items: center;
+
+      .icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+      }
+    }
   }
 }
 </style>
