@@ -45,3 +45,6 @@
   ```sh
   pm2 restart [name]
   ```
+
+## 一些小坑
+* 文件路径或者文件名里面如果含有特殊字符，不经处理就传给服务端的话是会报错的，所以很多地方都需要通过 `encodeURIComponent` 方法处理下然后传给服务端，服务器再用 `decodeURIComponent` 做解码。

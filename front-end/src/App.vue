@@ -56,7 +56,7 @@
         multiple
         name="files"
         :on-success="handleSuccess"
-        :action="`${serverOrigin}/upload?path=${path}`"
+        :action="`${serverOrigin}/upload?path=${encodeURIComponent(path)}`"
         :headers="{
           enctype: 'multipart/form-data'
         }"
@@ -141,7 +141,7 @@ const handleDownloadFile = (file) => {
   axios.get('/downloadFile', {
     params: {
       path: encodeURIComponent(path.value),
-      fileName: file.name
+      fileName: encodeURIComponent(file.name)
     },
     responseType: 'arraybuffer' // 响应数据使用二进制编码
   }).then(res => {
@@ -231,7 +231,7 @@ const handleSuccess = () => {
 
 const getIsImg = name => (/\.(jpg|png|gif|jpeg|svg)$/i).test(name)
 const previewImg = (file) => {
-  const url = `${serverOrigin}/downloadFile?path=${encodeURIComponent(path.value)}&fileName=${file.name}`
+  const url = `${serverOrigin}/downloadFile?path=${encodeURIComponent(path.value)}&fileName=${encodeURIComponent(file.name)}`
   window.open(url, '_blank')
 }
 
@@ -312,7 +312,7 @@ onBeforeMount(() => {
       .icon {
         width: 20px;
         height: 20px;
-        margin-right: 8px;
+        margin-right: 10px;
       }
     }
   }

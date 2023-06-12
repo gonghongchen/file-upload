@@ -122,7 +122,7 @@ app.post('/createNewDir', async (req, res) => {
 app.get('/downloadFile', async (req, res) => {
   const { path: filePath, fileName } = req.query
   const curPath = decodeURIComponent(filePath)
-  const dir = path.resolve(__dirname, curPath, fileName)
+  const dir = path.resolve(__dirname, curPath, decodeURIComponent(fileName))
   
   // 发送文件内容
   res.sendFile(dir)
