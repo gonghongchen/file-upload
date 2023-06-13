@@ -16,14 +16,14 @@ const app = express()
 
 app.use(express.json()) // 解析请求体中的 JSON 数据
 
-const whitelist = ['http://file.gonghongchen.com/']
+const whitelist = ['http://file.gonghongchen.com', 'http://file-server.gonghongchen.com', undefined]
 const corsOptions = {
   origin(origin, callback) {
-    // if (process.env.NODE_ENV === 'development' || whitelist.includes(origin)) {
+    if (process.env.NODE_ENV === 'development' || whitelist.includes(origin)) {
       callback(null, true)
-    // } else {
-    //   callback(new Error('Not allowed by CORS'))
-    // }
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
   }
 }
 app.use(cors(corsOptions)) // 接口请求跨域处理
