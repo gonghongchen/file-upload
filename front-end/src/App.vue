@@ -17,17 +17,19 @@
             placeholder="Please input folder name"
             style="margin-left: 20px; margin-right: 5px;"
           />
-          
           <el-button type="primary" @click="handlCreateDir" :icon="FolderAdd">New folder</el-button>
+          <el-button type="primary" @click="handleDownloadFiles" :disabled="selectedFiles.length === 0">Download files</el-button>
+          <el-button type="danger" @click="handleDeleteFiles" :disabled="selectedFiles.length === 0">Delete files</el-button>
         </div>
       </template>
     </el-page-header>
     
     <div class="table-box">
-      <el-table :data="files">
+      <el-table :data="files" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="name" label="File/Folder name">
           <template #default="{ row }">
-            <div class="file">
+            <div :class="['file', !row.isFile && 'folder']" @dblclick="row.isFile ? null : handleFetchFiles(row)">
               <img :src="getAssets(`svg/${row.icon}`)" class="icon" />
               <span>{{ row.name }}</span>
             </div>
@@ -37,8 +39,8 @@
         <el-table-column prop="size" label="File size" />
         <el-table-column label="Operations">
           <template #default="{ row }">
-            <el-button v-if="row.isFile" @click="handleDownloadFile(row)" type="primary" link :icon="Download">Download</el-button>
-            <el-button v-else @click="handleFetchFiles(row)" type="primary" link :icon="FolderOpened">Open</el-button>
+            <el-button @click="handleDownloadFile(row)" type="primary" link :icon="Download">Download</el-button>
+            <el-button v-if="!row.isFile" @click="handleFetchFiles(row)" type="primary" link :icon="FolderOpened">Open</el-button>
             <el-button v-if="getIsImg(row.name)" @click="previewImg(row)" type="primary" link :icon="Picture">Preview</el-button>
             <el-button @click="handleDelete(row)" type="danger" link :icon="Delete">Delete</el-button>
           </template>
@@ -135,6 +137,20 @@ const handleFetchFiles = (file = {}) => {
   })
 }
 
+const downloadByLink = (res, name) => {
+  // 接收到数据流后进行转换创建一个可以直接访问的 url 对象
+  const blob = new Blob([res.data], { type: 'application/octet-stream' })
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  // 动态创建并设置超链接的地址来实现自动下载功能
+  link.href = objectUrl
+  link.setAttribute('download', name)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 // 下载文件
 const handleDownloadFile = (file) => {
   ElMessage('The file is downloading, please be patient and wait')
@@ -145,17 +161,31 @@ const handleDownloadFile = (file) => {
     },
     responseType: 'arraybuffer' // 响应数据使用二进制编码
   }).then(res => {
-    // 接收到数据流后进行转换创建一个可以直接访问的 url 对象
-    const blob = new Blob([res.data], { type: 'application/octet-stream' })
-    const objectUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
+    const { isFile, name } = file
+    const outputFile = isFile ? name : `${name}.zip`
+    downloadByLink(res, outputFile)
+  })
+}
 
-    // 动态创建并设置超链接的地址来实现自动下载功能
-    link.href = objectUrl
-    link.setAttribute('download', file.name)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+// 多选
+const selectedFiles = ref([])
+const handleSelectionChange = (val) => {
+  selectedFiles.value = val
+}
+
+// 批量下载文件
+const handleDownloadFiles = () => {
+  const files = selectedFiles.value.map(file => file.name)
+  ElMessage('The file is downloading, please be patient and wait')
+  axios.get('/downloadFiles', {
+    params: {
+      path: encodeURIComponent(path.value),
+      files,
+    },
+    responseType: 'arraybuffer' // 响应数据使用二进制编码
+  }).then(res => {
+    const outputFile = files[0].split('.')[0] + '等' + files.length + '个文件.zip'
+    downloadByLink(res, outputFile)
   })
 }
 
@@ -211,6 +241,35 @@ const handleDelete = (file) => {
         params: {
           path: encodeURIComponent(path.value),
           fileName: file.name
+        }
+      }).then(res => {
+        ElMessage({
+            type: 'success',
+            message: 'Delete completed',
+          })
+        handleFetchFiles()
+      })
+    })
+    .catch(() => {})
+}
+
+// 批量删除目录/文件
+const handleDeleteFiles = () => {
+  const files = selectedFiles.value.map(file => file.name)
+  ElMessageBox.confirm(
+    `Are you sure to delete the selected ${files.length} files ?`,
+    'Warning',
+    {
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+      type: 'warning',
+    }
+  )
+    .then(() => {
+      axios.delete('/deleteFiles', {
+        params: {
+          path: encodeURIComponent(path.value),
+          files,
         }
       }).then(res => {
         ElMessage({
@@ -314,6 +373,10 @@ onBeforeMount(() => {
         height: 20px;
         margin-right: 10px;
       }
+    }
+    .folder {
+      user-select: none;
+      cursor: pointer;
     }
   }
 }

@@ -4,6 +4,7 @@ const cors = require('cors')
 const moment = require('moment')
 const path = require('path')
 const fs = require('fs-extra')
+const compress = require('./compress')
 const app = express()
 // const http = require('http')
 // const server = http.createServer(app)
@@ -118,14 +119,41 @@ app.post('/createNewDir', async (req, res) => {
   }
 })
 
-// 下载文件
+// 下载文件/文件夹
 app.get('/downloadFile', async (req, res) => {
   const { path: filePath, fileName } = req.query
   const curPath = decodeURIComponent(filePath)
-  const dir = path.resolve(__dirname, curPath, decodeURIComponent(fileName))
-  
-  // 发送文件内容
-  res.sendFile(dir)
+  const file = decodeURIComponent(fileName)
+  const isFile = file.toString().includes('.')
+  if (isFile) {
+    // 文件下载
+    const dir = path.resolve(__dirname, curPath, file)
+    // 发送文件内容
+    res.sendFile(dir)
+  } else {
+    // 文件夹下载
+    compress(curPath, [file], (dir) => {
+      // 发送文件内容
+      res.sendFile(dir, () => {
+        // 发送后删除该压缩文件
+        fs.removeSync(dir)
+      })
+    })
+  }
+})
+
+// 批量下载文件/文件夹：本质上是先把所有文件打包成一个压缩包，然后再下载该压缩包。
+app.get('/downloadFiles', async (req, res) => {
+  const { path: filePath, files } = req.query
+  const curPath = decodeURIComponent(filePath)
+
+  compress(curPath, files, (dir) => {
+    // 发送文件内容
+    res.sendFile(dir, () => {
+      // 发送后删除该压缩文件
+      fs.removeSync(dir)
+    })
+  })
 })
 
 // 删除目录/文件
@@ -148,6 +176,23 @@ app.delete('/deleteFile', async (req, res) => {
       msg: '删除失败！',
     })
   }
+})
+
+// 批量删除目录/文件，本质就是循环删除文件&文件夹
+app.delete('/deleteFiles', async (req, res) => {
+  const { path: filePath, files } = req.query
+  const curPath = decodeURIComponent(filePath)
+  const fns = files.map(file => {
+    const dir = path.resolve(__dirname, curPath, file)
+    return fs.removeSync(dir)
+  })
+  
+  await Promise.all(fns)
+  res.send({
+    code: 0,
+    msg: '删除成功！',
+    data: {}
+  })
 })
 
 // 启动 socket.io
